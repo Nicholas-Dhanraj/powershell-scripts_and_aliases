@@ -1,0 +1,38 @@
+function Start-Clock
+{
+  # create a timer that fires every 300ms
+  $script:timer = New-Object System.Timers.Timer
+  $timer.Enabled = $true
+  $timer.Interval = 300
+  $timer.AutoReset = $true
+
+  # respond to the timer "Elapsed" event
+   $null = Register-ObjectEvent -InputObject $timer -EventName Elapsed -SourceIdentifier Clock -Action {
+    # execute this whenever the timer fires
+    $titleText = $host.Ui.RawUI.WindowTitle
+    
+    # is there a date information displayed already?
+    $hasTime =  $titleText -match '^\[\d{2}:\d{2}:\d{2}\] - '
+    if ($hasTime) 
+    {
+      # remove old date
+      $titleText = $titleText.SubString(13)
+    }
+    # set new date
+    $time = '[' + (Get-Date -Format 'HH:mm:ss' ) + '] - '
+    $host.UI.RawUI.WindowTitle = $time + $titleText
+  }
+}
+
+function Stop-Clock
+{
+  if ($script:timer -eq $null) { return }
+  
+  # remove timer and event
+  $script:timer.Stop()
+  Get-EventSubscriber -SourceIdentifier Clock | Unregister-Event
+  Remove-Variable -Name timer -Scope script
+  
+  # restore title text
+  $host.UI.RawUI.WindowTitle = $host.UI.RawUI.WindowTitle.SubString(13)
+}
